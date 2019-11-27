@@ -50,13 +50,8 @@ public class PoetryWidgetProvider extends AppWidgetProvider {
     // 第一个widget被创建时调用
     @Override
     public void onEnabled(Context context) {
-        Log.d("CHEN", "onEnabled");
-        Intent intent = new Intent(context, PoetryWidgetService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent);
-        } else {
-            context.startService(intent);
-        }
+        Log.i("CHENYINCHAO", "onEnabled");
+        startServie(context);
         super.onEnabled(context);
     }
 
@@ -70,7 +65,7 @@ public class PoetryWidgetProvider extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
-        Log.d("CHEN", "onReceive:Action: " + action);
+        Log.i("CHENYINCHAO", "onReceive:Action: " + action);
         if (PoetryWidgetService.ACTION_UPDATE_POETRY_CONTENT.equals(action)) {
             Bundle extras = intent.getExtras();
             PoetryBean poetryBean = (PoetryBean) extras.getSerializable("poetryBean");
@@ -78,12 +73,23 @@ public class PoetryWidgetProvider extends AppWidgetProvider {
             String author = poetryBean.getAuthor();
             String content = poetryBean.getContent();
             updateAllAppWidgets(context, AppWidgetManager.getInstance(context), idsSet, origin, author, content);
+        } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
+            startServie(context);
         }
         super.onReceive(context, intent);
     }
 
+    private void startServie(Context context) {
+        Intent intent = new Intent(context, PoetryWidgetService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent);
+        } else {
+            context.startService(intent);
+        }
+    }
+
     private void updateAllAppWidgets(Context context, AppWidgetManager appWidgetManager, Set set, String origin, String author, String content) {
-        Log.d("CHEN", "updateAllAppWidgets(): size=" + set.size());
+        Log.i("CHENYINCHAO", "updateAllAppWidgets(): size=" + set.size());
         int appID;
         Iterator it = set.iterator();
         while (it.hasNext()) {

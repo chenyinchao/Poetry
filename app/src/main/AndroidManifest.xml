@@ -22,6 +22,6 @@
                 android:resource="@xml/poetry_widget_info" />
         </receiver>
 
-        <service android:name=".PoetryWidgetService"/>
+        <service android:name=".PoetryWidgetService" />
     </application>
 </manifest>

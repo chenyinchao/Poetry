@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,6 +33,7 @@ import okhttp3.Response;
 public class PoetryWidgetService extends Service {
 
     public static final String ACTION_UPDATE_POETRY_CONTENT = "com.ycchen.UPDATE_POETRY_CONTENT";
+    //    private static final int UPDATE_TIME = 10 * 60 * 1000;
     private static final int UPDATE_TIME = 5000;
     private UpdateThread mUpdateThread;
     private Context mContext;
@@ -97,7 +99,7 @@ public class PoetryWidgetService extends Service {
             try {
                 count = 0;
                 while (true) {
-                    Log.d("CHEN", "count: " + count);
+                    Log.i("CHENYINCHAO", "count: " + count);
                     count++;
                     requesetHttpData();
                     Thread.sleep(UPDATE_TIME);
@@ -118,13 +120,13 @@ public class PoetryWidgetService extends Service {
             call.enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-                    Log.i("CHEN", "onFailure");
+                    Log.i("CHENYINCHAO", "onFailure");
                 }
 
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     String reponseBody = response.body().string();
-                    Log.i("CHEN", "onResponse: reponseBody：" + reponseBody);
+                    Log.i("CHENYINCHAO", "onResponse: reponseBody：" + reponseBody);
                     if (response.isSuccessful()) {
                         PoetryBean poetryBean =
                                 new Gson().fromJson(reponseBody, PoetryBean.class);
@@ -141,7 +143,7 @@ public class PoetryWidgetService extends Service {
             });
         } catch (Exception e) {
             ToastUtil.showToast(mContext, "请求失败");
-            Log.i("CHEN", "Exception: 请求失败" + ", e: " + e.getMessage());
+            Log.i("CHENYINCHAO", "Exception: 请求失败" + ", e: " + e.getMessage());
         }
     }
 }
