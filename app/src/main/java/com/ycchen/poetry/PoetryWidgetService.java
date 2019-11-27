@@ -7,13 +7,15 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Color;
+import android.net.ConnectivityManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.util.Log;
 
-import androidx.core.app.NotificationCompat;
+import androidx.annotation.NonNull;
 
 import com.google.gson.Gson;
 
@@ -33,12 +35,36 @@ import okhttp3.Response;
 public class PoetryWidgetService extends Service {
 
     public static final String ACTION_UPDATE_POETRY_CONTENT = "com.ycchen.UPDATE_POETRY_CONTENT";
-    public static final String ACTION_RESTART_SERVICE = "com.ycchen.RESTART_SERVICE";
     //    private static final int UPDATE_TIME = 10 * 60 * 1000;
     private static final int UPDATE_TIME = 5000;
+    private static final int HTTP_REQUEST_ERROR = 11;
     private UpdateThread mUpdateThread;
     private Context mContext;
-    private int count = 0;
+    private String mNotificationId = "channelId";
+    private String mNotificationName = "channelName";
+    private PoetryWidgetBroadcastReceiver mPoetryWidgetBroadcastReceiver;
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            if (msg.what == HTTP_REQUEST_ERROR) {
+                ToastUtil.showToastLong(mContext, "请检查网络状态");
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        ConnectivityManager manager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                        boolean isMobileDataEnable = manager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).isConnectedOrConnecting();
+                        boolean isWifiDataEnable = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).isConnectedOrConnecting();
+                        if (isMobileDataEnable || isWifiDataEnable) {
+                            ToastUtil.showToastLong(mContext, "网络正常了");
+                        } else {
+                            // 给定20秒时间等待连接，若还是没网就结束掉服务，不然一直网络请求
+                            stopSelf();
+                        }
+                    }
+                }, 20000);
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
@@ -46,34 +72,35 @@ public class PoetryWidgetService extends Service {
         mUpdateThread = new UpdateThread();
         mUpdateThread.start();
         mContext = this.getApplicationContext();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            startMyOwnForeground();
-        else
-            startForeground(1, new Notification());
+        if (mPoetryWidgetBroadcastReceiver == null) {
+            mPoetryWidgetBroadcastReceiver = new PoetryWidgetBroadcastReceiver();
+        }
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(mPoetryWidgetBroadcastReceiver, intentFilter);
+        /**
+         * android8.0以上通过startForegroundService启动service,
+         * 参考：https://blog.csdn.net/huaheshangxo/article/details/82856388
+         */
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        //创建 NotificationChannel
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(mNotificationId, mNotificationName, NotificationManager.IMPORTANCE_HIGH);
+            notificationManager.createNotificationChannel(channel);
+        }
+        startForeground(1, getNotification());
     }
 
-    /**
-     * Android O以上版本要求广播/服务都要显示启动，并且要加Notification
-     * https://stackoverflow.com/questions/47531742/startforeground-fail-after-upgrade-to-android-8-1/47533338#47533338
-     */
-    private void startMyOwnForeground() {
-        String NOTIFICATION_CHANNEL_ID = "com.example.simpleapp";
-        String channelName = "My Background Service";
-        NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_NONE);
-        chan.setLightColor(Color.BLUE);
-        chan.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
-        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        assert manager != null;
-        manager.createNotificationChannel(chan);
-
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
-        Notification notification = notificationBuilder.setOngoing(true)
+    private Notification getNotification() {
+        Notification.Builder builder = new Notification.Builder(this)
                 .setSmallIcon(R.drawable.preview)
-                .setContentTitle("App is running in background")
-                .setPriority(NotificationManager.IMPORTANCE_MIN)
-                .setCategory(Notification.CATEGORY_SERVICE)
-                .build();
-        startForeground(2, notification);
+                .setContentTitle("App is running in background");
+        //设置Notification的ChannelID,否则不能正常显示
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder.setChannelId(mNotificationId);
+        }
+        Notification notification = builder.build();
+        return notification;
     }
 
     @Override
@@ -81,11 +108,8 @@ public class PoetryWidgetService extends Service {
         if (mUpdateThread != null) {
             mUpdateThread.interrupt();
         }
+        unregisterReceiver(mPoetryWidgetBroadcastReceiver);
         super.onDestroy();
-        Intent updateIntent = new Intent();
-        updateIntent.setAction(ACTION_RESTART_SERVICE);
-        updateIntent.setPackage("com.ycchen.poetry");
-        mContext.sendBroadcast(updateIntent);
     }
 
     @Override
@@ -95,6 +119,7 @@ public class PoetryWidgetService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        // 保活
         return START_STICKY;
     }
 
@@ -103,10 +128,10 @@ public class PoetryWidgetService extends Service {
         public void run() {
             super.run();
             try {
-                count = 0;
+                int cout = 0;
                 while (true) {
-                    Log.i("CHENYINCHAO", "count: " + count);
-                    count++;
+                    Log.i("CHENYINCHAO", "cout: " + cout);
+                    cout++;
                     requesetHttpData();
                     Thread.sleep(UPDATE_TIME);
                 }
@@ -114,6 +139,7 @@ public class PoetryWidgetService extends Service {
                 e.printStackTrace();
             }
         }
+
     }
 
     private void requesetHttpData() {
@@ -127,6 +153,9 @@ public class PoetryWidgetService extends Service {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     Log.i("CHENYINCHAO", "onFailure");
+                    Message message = mHandler.obtainMessage();
+                    message.what = HTTP_REQUEST_ERROR;
+                    mHandler.sendMessage(message);
                 }
 
                 @Override

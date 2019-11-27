@@ -4,6 +4,7 @@ import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,10 +19,10 @@ import java.util.Set;
  * @Description: BroadcastReceiver广播接收者，更新数据
  * @since 2019/11/27 11:55
  */
-public class PoetryWidgetBroadcastReceive extends AppWidgetProvider {
+public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
     private static Set idsSet = new HashSet();
 
-    // onUpdate()在更新 widget时，被执行
+    // 更新widget时
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int appWidgetId : appWidgetIds) {
@@ -29,25 +30,23 @@ public class PoetryWidgetBroadcastReceive extends AppWidgetProvider {
         }
     }
 
-    // 当widget被初次添加或者当widget的大小被改变时，被调用
+    // widget初次添加或者大小改变时调用
     @Override
-    public void onAppWidgetOptionsChanged(Context context,
-                                          AppWidgetManager appWidgetManager, int appWidgetId,
-                                          Bundle newOptions) {
-        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId,
-                newOptions);
+    public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager, int appWidgetId, Bundle newOptions) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions);
     }
 
-    // widget被删除时调用
+    // widget被删除时
     @Override
     public void onDeleted(Context context, int[] appWidgetIds) {
+        Log.i("CHENYINCHAO", "onDeleted");
         for (int appWidgetId : appWidgetIds) {
             idsSet.remove(Integer.valueOf(appWidgetId));
         }
         super.onDeleted(context, appWidgetIds);
     }
 
-    // 第一个widget被创建时调用
+    // 创建widget调用
     @Override
     public void onEnabled(Context context) {
         Log.i("CHENYINCHAO", "onEnabled");
@@ -55,6 +54,7 @@ public class PoetryWidgetBroadcastReceive extends AppWidgetProvider {
         super.onEnabled(context);
     }
 
+    // 当最后1个widget的实例被删除时触发
     @Override
     public void onDisabled(Context context) {
         Intent intent = new Intent(context, PoetryWidgetService.class);
@@ -66,22 +66,30 @@ public class PoetryWidgetBroadcastReceive extends AppWidgetProvider {
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
         Log.i("CHENYINCHAO", "onReceive:Action: " + action);
-        if (PoetryWidgetService.ACTION_UPDATE_POETRY_CONTENT.equals(action)) {
-            Bundle extras = intent.getExtras();
-            PoetryBean poetryBean = (PoetryBean) extras.getSerializable("poetryBean");
-            String origin = poetryBean.getOrigin();
-            String author = poetryBean.getAuthor();
-            String content = poetryBean.getContent();
-            updateAllAppWidgets(context, AppWidgetManager.getInstance(context), idsSet, origin, author, content);
-        } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
-            startServie(context);
-        } else if (PoetryWidgetService.ACTION_RESTART_SERVICE.equals(action)) {
-            startServie(context);
+        switch (action) {
+            case PoetryWidgetService.ACTION_UPDATE_POETRY_CONTENT:
+                Bundle extras = intent.getExtras();
+                PoetryBean poetryBean = (PoetryBean) extras.getSerializable("poetryBean");
+                String origin = poetryBean.getOrigin();
+                String author = poetryBean.getAuthor();
+                String content = poetryBean.getContent();
+                updateAllAppWidgets(context, AppWidgetManager.getInstance(context), idsSet, origin, author, content);
+                break;
+            case ConnectivityManager.CONNECTIVITY_ACTION:
+                // 若有连上网了，启动服务
+                startServie(context);
+                break;
+            default:
+                break;
         }
         super.onReceive(context, intent);
     }
 
     private void startServie(Context context) {
+        /**
+         * android8.0以上通过startForegroundService启动service,
+         * 参考：https://blog.csdn.net/huaheshangxo/article/details/82856388
+         */
         Intent intent = new Intent(context, PoetryWidgetService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent);
