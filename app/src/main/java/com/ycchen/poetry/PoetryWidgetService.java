@@ -33,6 +33,7 @@ import okhttp3.Response;
 public class PoetryWidgetService extends Service {
 
     public static final String ACTION_UPDATE_POETRY_CONTENT = "com.ycchen.UPDATE_POETRY_CONTENT";
+    public static final String ACTION_RESTART_SERVICE = "com.ycchen.RESTART_SERVICE";
     //    private static final int UPDATE_TIME = 10 * 60 * 1000;
     private static final int UPDATE_TIME = 5000;
     private UpdateThread mUpdateThread;
@@ -79,6 +80,10 @@ public class PoetryWidgetService extends Service {
             mUpdateThread.interrupt();
         }
         super.onDestroy();
+        Intent updateIntent = new Intent();
+        updateIntent.setAction(ACTION_RESTART_SERVICE);
+        updateIntent.setPackage("com.ycchen.poetry");
+        mContext.sendBroadcast(updateIntent);
     }
 
     @Override
@@ -88,7 +93,6 @@ public class PoetryWidgetService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        super.onStartCommand(intent, flags, startId);
         return START_STICKY;
     }
 

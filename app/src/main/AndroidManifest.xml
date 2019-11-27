@@ -10,7 +10,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <receiver android:name=".PoetryWidgetProvider">
+        <receiver android:name=".PoetryWidgetBroadcastReceive">
             <intent-filter>
                 <!--wdiget状态更新-->
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -22,6 +22,8 @@
                 android:resource="@xml/poetry_widget_info" />
         </receiver>
 
-        <service android:name=".PoetryWidgetService" />
+        <service
+            android:name=".PoetryWidgetService"
+            android:priority="1000" />
     </application>
 </manifest>

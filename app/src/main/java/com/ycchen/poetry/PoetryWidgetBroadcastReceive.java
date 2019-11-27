@@ -18,7 +18,7 @@ import java.util.Set;
  * @Description: BroadcastReceiver广播接收者，更新数据
  * @since 2019/11/27 11:55
  */
-public class PoetryWidgetProvider extends AppWidgetProvider {
+public class PoetryWidgetBroadcastReceive extends AppWidgetProvider {
     private static Set idsSet = new HashSet();
 
     // onUpdate()在更新 widget时，被执行
@@ -74,6 +74,8 @@ public class PoetryWidgetProvider extends AppWidgetProvider {
             String content = poetryBean.getContent();
             updateAllAppWidgets(context, AppWidgetManager.getInstance(context), idsSet, origin, author, content);
         } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
+            startServie(context);
+        } else if (PoetryWidgetService.ACTION_RESTART_SERVICE.equals(action)) {
             startServie(context);
         }
         super.onReceive(context, intent);
