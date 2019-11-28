@@ -146,7 +146,7 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
     /**
      * 判断服务是否运行
      */
-    public boolean isServiceRunning(final String className, Context context) {
+    private boolean isServiceRunning(final String className, Context context) {
         ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningServiceInfo> info = activityManager.getRunningServices(Integer.MAX_VALUE);
         if (info == null || info.size() == 0) return false;
