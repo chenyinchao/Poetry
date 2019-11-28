@@ -25,6 +25,7 @@
         </receiver>
 
         <service
+            android:exported="true"
             android:name=".PoetryWidgetService"
             android:priority="1000" />
     </application>

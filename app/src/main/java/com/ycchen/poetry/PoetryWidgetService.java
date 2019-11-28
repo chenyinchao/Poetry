@@ -35,10 +35,9 @@ import okhttp3.Response;
 public class PoetryWidgetService extends Service {
 
     public static final String ACTION_UPDATE_POETRY_CONTENT = "com.ycchen.UPDATE_POETRY_CONTENT";
-    //    private static final int UPDATE_TIME = 10 * 60 * 1000;
-    private static final int UPDATE_TIME = 5000;
+    private static final int UPDATE_TIME = 10 * 60 * 1000;
+    // private static final int UPDATE_TIME = 5000;
     private static final int HTTP_REQUEST_ERROR = 11;
-    private UpdateThread mUpdateThread;
     private Context mContext;
     private String mNotificationId = "channelId";
     private String mNotificationName = "channelName";
@@ -69,8 +68,6 @@ public class PoetryWidgetService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        mUpdateThread = new UpdateThread();
-        mUpdateThread.start();
         mContext = this.getApplicationContext();
         if (mPoetryWidgetBroadcastReceiver == null) {
             mPoetryWidgetBroadcastReceiver = new PoetryWidgetBroadcastReceiver();
@@ -89,6 +86,15 @@ public class PoetryWidgetService extends Service {
             notificationManager.createNotificationChannel(channel);
         }
         startForeground(1, getNotification());
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                Log.i("CHENYINCHAO", "定时执行");
+                mHandler.postDelayed(this, 5000);
+                requesetHttpData(mContext);
+            }
+        };
+        mHandler.postDelayed(runnable, 1000);
     }
 
     private Notification getNotification() {
@@ -105,9 +111,6 @@ public class PoetryWidgetService extends Service {
 
     @Override
     public void onDestroy() {
-        if (mUpdateThread != null) {
-            mUpdateThread.interrupt();
-        }
         unregisterReceiver(mPoetryWidgetBroadcastReceiver);
         super.onDestroy();
     }
@@ -123,26 +126,7 @@ public class PoetryWidgetService extends Service {
         return START_STICKY;
     }
 
-    private class UpdateThread extends Thread {
-        @Override
-        public void run() {
-            super.run();
-            try {
-                int cout = 0;
-                while (true) {
-                    Log.i("CHENYINCHAO", "cout: " + cout);
-                    cout++;
-                    requesetHttpData();
-                    Thread.sleep(UPDATE_TIME);
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
-    }
-
-    private void requesetHttpData() {
+    public void requesetHttpData(final Context context) {
         try {
             // 古诗词，一言API: https://gushi.ci/
             String url = "https://v1.jinrishici.com/all.json";
@@ -172,12 +156,12 @@ public class PoetryWidgetService extends Service {
                         updateIntent.setAction(ACTION_UPDATE_POETRY_CONTENT);
                         updateIntent.setPackage("com.ycchen.poetry");
                         updateIntent.putExtras(bundle);
-                        mContext.sendBroadcast(updateIntent);
+                        context.sendBroadcast(updateIntent);
                     }
                 }
             });
         } catch (Exception e) {
-            ToastUtil.showToast(mContext, "请求失败");
+            ToastUtil.showToast(context, "请求失败");
             Log.i("CHENYINCHAO", "Exception: 请求失败" + ", e: " + e.getMessage());
         }
     }
