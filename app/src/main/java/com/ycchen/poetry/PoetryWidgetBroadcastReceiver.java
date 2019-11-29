@@ -7,18 +7,16 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
+import android.os.Handler;
 import android.widget.RemoteViews;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -122,12 +120,16 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
                 remoteViews.setTextViewText(R.id.text_content, content);
                 appWidgetManager.updateAppWidget(componentName, remoteViews);
                 break;
-            // 若断网后又连上网了，启动服务
-            case ConnectivityManager.CONNECTIVITY_ACTION:
-                // 解锁
+            // 解锁，继续请求数据，并且解锁2秒后更新第一条
             case Intent.ACTION_USER_PRESENT:
-                mDealWithHandlerMessage.continueHandlerPost();
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        mDealWithHandlerMessage.continueHandlerPost();
+                    }
+                }, 2000);
                 break;
+            // 启动服务
             case CLICK_ACTION:
                 Uri data = intent.getData();
                 int resId = -1;
@@ -153,9 +155,9 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
     }
 
     private void startServie(Context context) {
-        if (isServiceRunning("com.ycchen.poetry.PoetryWidgetService", context)) {
+        if (isServiceRunning(PoetryWidgetService.class.getName(), context)) {
             ToastUtil.showToast(context, "桌面诗词服务正在运行");
-            logtest.info("桌面诗词服务正在运行");
+            logtest.info("服务正在运行");
             return;
         }
         logtest.info("桌面诗词服务已经启动了，不再startService");
@@ -177,9 +179,13 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
     private boolean isServiceRunning(final String className, Context context) {
         ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningServiceInfo> info = activityManager.getRunningServices(Integer.MAX_VALUE);
-        if (info == null || info.size() == 0) return false;
+        if (info == null || info.size() == 0) {
+            return false;
+        }
         for (ActivityManager.RunningServiceInfo aInfo : info) {
-            if (className.equals(aInfo.service.getClassName())) return true;
+            if (className.equals(aInfo.service.getClassName())) {
+                return true;
+            }
         }
         return false;
     }

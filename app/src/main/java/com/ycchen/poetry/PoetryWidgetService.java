@@ -34,13 +34,25 @@ import okhttp3.Response;
 public class PoetryWidgetService extends Service {
 
     public static final String ACTION_UPDATE_POETRY_CONTENT = "com.ycchen.UPDATE_POETRY_CONTENT";
-    private static final int UPDATE_TIME = 10 * 60 * 1000;
-    //     private static final int UPDATE_TIME = 5000;
+
+    // 十分钟
+//    private static final int UPDATE_TIME = 10 * 60 * 1000;
+
+    // 5秒钟
+    private static final int UPDATE_TIME = 5000;
+
     private static final int HTTP_REQUEST_ERROR = 11;
+
     private Context mContext;
+
     private String mNotificationId = "channelId";
+
     private String mNotificationName = "channelName";
+
+    private Runnable mRunnable;
+
     private PoetryWidgetBroadcastReceiver mPoetryWidgetBroadcastReceiver;
+
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(@NonNull Message msg) {
@@ -55,8 +67,8 @@ public class PoetryWidgetService extends Service {
                         if (isMobileDataEnable || isWifiDataEnable) {
                             ToastUtil.showToastLong(mContext, "网络正常了");
                         } else {
-                            // 给定一分钟等待连接，若还是没网就结束掉服务，不然会一直网络请求
-                            stopSelf();
+                            PoetryWidgetBroadcastReceiver.logtest.info("60秒还没有连上网络，停止网络请求Runnable");
+                            mHandler.removeCallbacks(mRunnable);
                         }
                     }
                 }, 60 * 1000);
@@ -72,8 +84,7 @@ public class PoetryWidgetService extends Service {
             mPoetryWidgetBroadcastReceiver = new PoetryWidgetBroadcastReceiver();
         }
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-//        intentFilter.addAction(Intent.ACTION_SCREEN_ON);
+        // 熄屏
         intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
         // 解锁
         intentFilter.addAction(Intent.ACTION_USER_PRESENT);
@@ -89,28 +100,28 @@ public class PoetryWidgetService extends Service {
             notificationManager.createNotificationChannel(channel);
         }
         startForeground(1, getNotification());
-        final Runnable runnable = new Runnable() {
+        mRunnable = new Runnable() {
             @Override
             public void run() {
                 PoetryWidgetBroadcastReceiver.logtest.info("定时执行");
-                mHandler.postDelayed(this, 5000);
+                mHandler.postDelayed(this, UPDATE_TIME);
                 requesetHttpData(mContext);
             }
         };
-        mHandler.post(runnable);
+        mHandler.post(mRunnable);
 
         mPoetryWidgetBroadcastReceiver.setDealWithHandlerMessage(new PoetryWidgetBroadcastReceiver.DealWithHandlerMessage() {
             @Override
             public void stopHandlerPost() {
                 // 熄屏停止循环
-                mHandler.removeCallbacks(runnable);
+                mHandler.removeCallbacks(mRunnable);
                 PoetryWidgetBroadcastReceiver.logtest.info("removeCallbacks");
             }
 
             @Override
             public void continueHandlerPost() {
                 // 解锁继续循环
-                mHandler.post(runnable);
+                mHandler.post(mRunnable);
                 PoetryWidgetBroadcastReceiver.logtest.info("continueHandlerPost");
             }
         });
@@ -182,11 +193,9 @@ public class PoetryWidgetService extends Service {
                 }
             });
         } catch (Exception e) {
-            ToastUtil.showToast(context, "请求失败");
+            ToastUtil.showToastLong(context, "请求失败");
             PoetryWidgetBroadcastReceiver.logtest.info("Exception: 请求失败" + ", e: " + e.getMessage());
         }
     }
-
-
 }
 
