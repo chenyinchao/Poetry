@@ -14,6 +14,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.RemoteViews;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -25,7 +28,11 @@ import java.util.Set;
  * @since 2019/11/27 11:55
  */
 public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
+
+    public static final Logger logtest = LoggerFactory.getLogger("logtest");
+
     public static final String CLICK_ACTION = "com.ycchen.CLICK_ACTION";
+
     private static Set idsSet = new HashSet();
 
     // 更新widget时
@@ -57,7 +64,7 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
     // widget被删除时
     @Override
     public void onDeleted(Context context, int[] appWidgetIds) {
-        Log.i("CHENYINCHAO", "onDeleted");
+        logtest.info("onDeleted");
         for (int appWidgetId : appWidgetIds) {
             idsSet.remove(Integer.valueOf(appWidgetId));
         }
@@ -67,7 +74,7 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
     // 创建widget调用
     @Override
     public void onEnabled(Context context) {
-        Log.i("CHENYINCHAO", "onEnabled");
+        logtest.info("onEnabled");
         startServie(context);
         super.onEnabled(context);
     }
@@ -87,7 +94,7 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.poetry_widget_layout);
         ComponentName componentName = new ComponentName(context, PoetryWidgetBroadcastReceiver.class);
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-        Log.i("CHENYINCHAO", "onReceive:Action: " + action);
+        logtest.info("onReceive:Action: " + action);
         switch (action) {
             case PoetryWidgetService.ACTION_UPDATE_POETRY_CONTENT:
                 Bundle extras = intent.getExtras();
@@ -126,11 +133,11 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
 
     private void startServie(Context context) {
         if (isServiceRunning("com.ycchen.poetry.PoetryWidgetService", context)) {
-            ToastUtil.showToastLong(context, "桌面诗词服务正在运行");
-            Log.i("CHENYINCHAO", "桌面诗词服务正在运行");
+            ToastUtil.showToast(context, "桌面诗词服务正在运行");
+            logtest.info("桌面诗词服务正在运行");
             return;
         }
-        ToastUtil.showToastLong(context, "桌面诗词服务启动了");
+        logtest.info("桌面诗词服务已经启动了，不要再startService");
         /**
          * android8.0以上通过startForegroundService启动service,
          * 参考：https://blog.csdn.net/huaheshangxo/article/details/82856388

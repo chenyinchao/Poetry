@@ -13,7 +13,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -36,7 +35,7 @@ public class PoetryWidgetService extends Service {
 
     public static final String ACTION_UPDATE_POETRY_CONTENT = "com.ycchen.UPDATE_POETRY_CONTENT";
     private static final int UPDATE_TIME = 10 * 60 * 1000;
-    // private static final int UPDATE_TIME = 5000;
+//     private static final int UPDATE_TIME = 5000;
     private static final int HTTP_REQUEST_ERROR = 11;
     private Context mContext;
     private String mNotificationId = "channelId";
@@ -89,8 +88,8 @@ public class PoetryWidgetService extends Service {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                Log.i("CHENYINCHAO", "定时执行");
-                mHandler.postDelayed(this, 5000);
+                PoetryWidgetBroadcastReceiver.logtest.info("定时执行");
+                mHandler.postDelayed(this, UPDATE_TIME);
                 requesetHttpData(mContext);
             }
         };
@@ -111,6 +110,7 @@ public class PoetryWidgetService extends Service {
 
     @Override
     public void onDestroy() {
+        PoetryWidgetBroadcastReceiver.logtest.info("onDestroy");
         unregisterReceiver(mPoetryWidgetBroadcastReceiver);
         super.onDestroy();
     }
@@ -136,7 +136,7 @@ public class PoetryWidgetService extends Service {
             call.enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-                    Log.i("CHENYINCHAO", "onFailure");
+                    PoetryWidgetBroadcastReceiver.logtest.info("onFailure");
                     Message message = mHandler.obtainMessage();
                     message.what = HTTP_REQUEST_ERROR;
                     mHandler.sendMessage(message);
@@ -145,7 +145,7 @@ public class PoetryWidgetService extends Service {
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     String reponseBody = response.body().string();
-                    Log.i("CHENYINCHAO", "onResponse: reponseBody：" + reponseBody);
+                    PoetryWidgetBroadcastReceiver.logtest.info("reponseBody: " + reponseBody);
                     if (response.isSuccessful()) {
                         PoetryBean poetryBean =
                                 new Gson().fromJson(reponseBody, PoetryBean.class);
@@ -162,8 +162,10 @@ public class PoetryWidgetService extends Service {
             });
         } catch (Exception e) {
             ToastUtil.showToast(context, "请求失败");
-            Log.i("CHENYINCHAO", "Exception: 请求失败" + ", e: " + e.getMessage());
+            PoetryWidgetBroadcastReceiver.logtest.info("Exception: 请求失败" + ", e: " + e.getMessage());
         }
     }
+
+
 }
 
