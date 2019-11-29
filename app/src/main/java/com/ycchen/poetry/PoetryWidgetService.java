@@ -35,7 +35,7 @@ public class PoetryWidgetService extends Service {
 
     public static final String ACTION_UPDATE_POETRY_CONTENT = "com.ycchen.UPDATE_POETRY_CONTENT";
     private static final int UPDATE_TIME = 10 * 60 * 1000;
-//     private static final int UPDATE_TIME = 5000;
+    //     private static final int UPDATE_TIME = 5000;
     private static final int HTTP_REQUEST_ERROR = 11;
     private Context mContext;
     private String mNotificationId = "channelId";
@@ -55,11 +55,11 @@ public class PoetryWidgetService extends Service {
                         if (isMobileDataEnable || isWifiDataEnable) {
                             ToastUtil.showToastLong(mContext, "网络正常了");
                         } else {
-                            // 给定20秒时间等待连接，若还是没网就结束掉服务，不然一直网络请求
+                            // 给定一分钟等待连接，若还是没网就结束掉服务，不然会一直网络请求
                             stopSelf();
                         }
                     }
-                }, 20000);
+                }, 60 * 1000);
             }
         }
     };
@@ -73,6 +73,10 @@ public class PoetryWidgetService extends Service {
         }
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+//        intentFilter.addAction(Intent.ACTION_SCREEN_ON);
+        intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
+        // 解锁
+        intentFilter.addAction(Intent.ACTION_USER_PRESENT);
         registerReceiver(mPoetryWidgetBroadcastReceiver, intentFilter);
         /**
          * android8.0以上通过startForegroundService启动service,
@@ -85,15 +89,31 @@ public class PoetryWidgetService extends Service {
             notificationManager.createNotificationChannel(channel);
         }
         startForeground(1, getNotification());
-        Runnable runnable = new Runnable() {
+        final Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 PoetryWidgetBroadcastReceiver.logtest.info("定时执行");
-                mHandler.postDelayed(this, UPDATE_TIME);
+                mHandler.postDelayed(this, 5000);
                 requesetHttpData(mContext);
             }
         };
-        mHandler.postDelayed(runnable, 1000);
+        mHandler.post(runnable);
+
+        mPoetryWidgetBroadcastReceiver.setDealWithHandlerMessage(new PoetryWidgetBroadcastReceiver.DealWithHandlerMessage() {
+            @Override
+            public void stopHandlerPost() {
+                // 熄屏停止循环
+                mHandler.removeCallbacks(runnable);
+                PoetryWidgetBroadcastReceiver.logtest.info("removeCallbacks");
+            }
+
+            @Override
+            public void continueHandlerPost() {
+                // 解锁继续循环
+                mHandler.post(runnable);
+                PoetryWidgetBroadcastReceiver.logtest.info("continueHandlerPost");
+            }
+        });
     }
 
     private Notification getNotification() {
@@ -122,6 +142,7 @@ public class PoetryWidgetService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        PoetryWidgetBroadcastReceiver.logtest.info("onStartCommand");
         // 保活
         return START_STICKY;
     }

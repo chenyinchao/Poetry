@@ -35,6 +35,21 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
 
     private static Set idsSet = new HashSet();
 
+
+    private DealWithHandlerMessage mDealWithHandlerMessage;
+
+    public void setDealWithHandlerMessage(DealWithHandlerMessage dealWithHandlerMessage) {
+        this.mDealWithHandlerMessage = dealWithHandlerMessage;
+    }
+
+    interface DealWithHandlerMessage {
+        // 暂停循环
+        void stopHandlerPost();
+
+        // 继续循环
+        void continueHandlerPost();
+    }
+
     // 更新widget时
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
@@ -109,7 +124,9 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
                 break;
             // 若断网后又连上网了，启动服务
             case ConnectivityManager.CONNECTIVITY_ACTION:
-                startServie(context);
+                // 解锁
+            case Intent.ACTION_USER_PRESENT:
+                mDealWithHandlerMessage.continueHandlerPost();
                 break;
             case CLICK_ACTION:
                 Uri data = intent.getData();
@@ -126,6 +143,10 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
                 }
                 appWidgetManager.updateAppWidget(componentName, remoteViews);
                 break;
+            // 熄屏，停止网络请求
+            case Intent.ACTION_SCREEN_OFF:
+                mDealWithHandlerMessage.stopHandlerPost();
+                break;
             default:
                 break;
         }
@@ -137,7 +158,7 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
             logtest.info("桌面诗词服务正在运行");
             return;
         }
-        logtest.info("桌面诗词服务已经启动了，不要再startService");
+        logtest.info("桌面诗词服务已经启动了，不再startService");
         /**
          * android8.0以上通过startForegroundService启动service,
          * 参考：https://blog.csdn.net/huaheshangxo/article/details/82856388
