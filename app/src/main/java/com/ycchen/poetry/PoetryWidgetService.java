@@ -36,10 +36,10 @@ public class PoetryWidgetService extends Service {
     public static final String ACTION_UPDATE_POETRY_CONTENT = "com.ycchen.UPDATE_POETRY_CONTENT";
 
     // 十分钟
-//    private static final int UPDATE_TIME = 10 * 60 * 1000;
+    private static final int UPDATE_TIME = 10 * 60 * 1000;
 
     // 5秒钟
-    private static final int UPDATE_TIME = 5000;
+//    private static final int UPDATE_TIME = 5000;
 
     private static final int HTTP_REQUEST_ERROR = 11;
 
