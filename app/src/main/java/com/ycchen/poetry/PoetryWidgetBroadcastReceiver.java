@@ -127,7 +127,7 @@ public class PoetryWidgetBroadcastReceiver extends AppWidgetProvider {
                     public void run() {
                         mDealWithHandlerMessage.continueHandlerPost();
                     }
-                }, 2000);
+                }, 15 * 1000);
                 break;
             // 启动服务
             case CLICK_ACTION:
